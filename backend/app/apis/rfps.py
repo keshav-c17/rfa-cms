@@ -14,6 +14,34 @@ from typing import List
 router = APIRouter()
 
 
+@router.get("/", response_model=List[RFPPublic])
+async def list_rfps(current_user: UserInDB = Depends(get_current_user)):
+    """
+    Lists RFPs based on user role.
+    - Suppliers see all 'Published' RFPs.
+    - Buyers see all RFPs they have created.
+    """
+    # BUG FIX: Explicitly define the query for each role
+    # to prevent accidentally returning all documents.
+    if current_user.role == "Supplier":
+        query = {"status": "Published"}
+    elif current_user.role == "Buyer":
+        query = {"buyer_id": ObjectId(current_user.id)}
+    else:
+        # If the user has an unrecognized role, return an empty list for security.
+        return []
+
+    rfps_cursor = rfp_collection.find(query)
+
+    rfp_list = []
+    for rfp in rfps_cursor:
+        rfp["id"] = str(rfp["_id"])
+        rfp["buyer_id"] = str(rfp["buyer_id"])
+        rfp_list.append(RFPPublic(**rfp))
+
+    return rfp_list
+
+
 @router.post("/", response_model=RFPPublic, status_code=status.HTTP_201_CREATED)
 async def create_rfp(rfp: RFPCreate, current_user: UserInDB = Depends(get_current_user)):
     """
