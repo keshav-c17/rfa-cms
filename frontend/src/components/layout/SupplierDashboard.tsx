@@ -4,6 +4,7 @@
 // It fetches all published RFPs from the backend API.
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // Import Link
 import { getRFPs } from '../../services/rfpService';
 
 interface RFP {
@@ -48,9 +49,10 @@ const SupplierDashboard: React.FC = () => {
                     <p className="mt-2 text-sm text-gray-600 line-clamp-3">{rfp.description}</p>
                     <div className="mt-4 flex justify-between items-center">
                         <span className="text-xs text-gray-500">Published on: {new Date(rfp.created_at).toLocaleDateString()}</span>
-                        <button className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                        {/* UPDATED LINK */}
+                        <Link to={`/rfp/${rfp.id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
                             View Details
-                        </button>
+                        </Link>
                     </div>
                 </div>
             )) : (

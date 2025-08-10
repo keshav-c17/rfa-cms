@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import RFPDetailPage from './pages/RFPDetailPage'; // Import the new page
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const PrivateRoute = ({ children }: { children: React.ReactElement }) => {
@@ -27,6 +28,15 @@ function App() {
               element={
                 <PrivateRoute>
                   <DashboardPage />
+                </PrivateRoute>
+              }
+            />
+            {/* Add the new route with a dynamic parameter for the RFP ID */}
+            <Route
+              path="/rfp/:rfpId"
+              element={
+                <PrivateRoute>
+                  <RFPDetailPage />
                 </PrivateRoute>
               }
             />
