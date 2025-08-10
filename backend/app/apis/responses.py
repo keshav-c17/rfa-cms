@@ -1,17 +1,48 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
-from ..models.response_model import ResponsePublic
+from ..models.response_model import ResponsePublic, ResponseStatusUpdate
 from ..models.user_model import UserInDB
 from ..core.security import get_current_user
 from ..db.database import rfp_collection, response_collection
 from bson import ObjectId
 from datetime import datetime, timezone
 import shutil
-from pathlib import Path # Import Path
+from pathlib import Path
+from typing import List
 
 router = APIRouter()
 
 # Define the base directory of the backend project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+@router.get("/{rfp_id}/responses", response_model=List[ResponsePublic])
+async def list_responses_for_rfp(
+        rfp_id: str,
+        current_user: UserInDB = Depends(get_current_user)
+):
+    try:
+        rfp_obj_id = ObjectId(rfp_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid RFP ID format")
+
+    rfp = rfp_collection.find_one({"_id": rfp_obj_id})
+    if rfp is None:
+        raise HTTPException(status_code=404, detail="RFP not found")
+
+    if str(rfp["buyer_id"]) != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view responses for this RFP")
+
+    responses_cursor = response_collection.find({"rfp_id": rfp_obj_id})
+
+    response_list = []
+    for response in responses_cursor:
+        response["id"] = str(response["_id"])
+        response["rfp_id"] = str(response["rfp_id"])
+        response["supplier_id"] = str(response["supplier_id"])
+        response_list.append(ResponsePublic(**response))
+
+    return response_list
+
 
 @router.post("/{rfp_id}/responses", response_model=ResponsePublic, status_code=status.HTTP_201_CREATED)
 async def submit_response(
@@ -33,8 +64,8 @@ async def submit_response(
 
     # Check if the RFP exists and is published
     rfp = rfp_collection.find_one({"_id": rfp_obj_id})
-    if rfp is None or rfp.get("status") != "Published":
-        raise HTTPException(status_code=404, detail="Published RFP not found.")
+    if rfp is None or rfp.get("status") not in ["Published", "Response Submitted"]:
+        raise HTTPException(status_code=404, detail="RFP is not open for responses.")
 
     # Save the uploaded file locally using an absolute path
     uploads_dir = BASE_DIR / "uploads"
@@ -47,7 +78,8 @@ async def submit_response(
         "rfp_id": rfp_obj_id,
         "supplier_id": ObjectId(current_user.id),
         "response_text": response_text,
-        "document_url": f"uploads/{file.filename}", # Store relative path in DB
+        "document_url": f"uploads/{file.filename}",
+        "status": "Submitted",  # Initial status for a new response
         "submitted_at": datetime.now(timezone.utc)
     }
     result = response_collection.insert_one(response_data)
@@ -65,3 +97,50 @@ async def submit_response(
     created_response["supplier_id"] = str(created_response["supplier_id"])
 
     return ResponsePublic(**created_response)
+
+
+@router.patch("/{rfp_id}/responses/{response_id}/status", response_model=ResponsePublic)
+async def update_response_status(
+        rfp_id: str,
+        response_id: str,
+        status_update: ResponseStatusUpdate,
+        current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Approves or rejects a specific response.
+    Only accessible by the Buyer who created the RFP.
+    """
+    try:
+        rfp_obj_id = ObjectId(rfp_id)
+        response_obj_id = ObjectId(response_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    # Verify the RFP exists and the user owns it
+    rfp = rfp_collection.find_one({"_id": rfp_obj_id})
+    if rfp is None or str(rfp["buyer_id"]) != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this RFP's responses")
+
+    # Update the specific response's status
+    response_collection.update_one(
+        {"_id": response_obj_id, "rfp_id": rfp_obj_id},
+        {"$set": {"status": status_update.status}}
+    )
+
+    # If a response is approved, update the main RFP's status to 'Approved'
+    if status_update.status == "Approved":
+        rfp_collection.update_one(
+            {"_id": rfp_obj_id},
+            {"$set": {"status": "Approved", "updated_at": datetime.now(timezone.utc)}}
+        )
+
+    # Fetch and return the updated response
+    updated_response = response_collection.find_one({"_id": response_obj_id})
+    if updated_response is None:
+        raise HTTPException(status_code=404, detail="Response not found")
+
+    updated_response["id"] = str(updated_response["_id"])
+    updated_response["rfp_id"] = str(updated_response["rfp_id"])
+    updated_response["supplier_id"] = str(updated_response["supplier_id"])
+
+    return ResponsePublic(**updated_response)
