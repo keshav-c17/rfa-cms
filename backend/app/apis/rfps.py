@@ -2,7 +2,7 @@
 # ------------------------------
 # This file contains the API endpoints for managing RFPs.
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
 from ..models.rfp_model import RFPPublic, RFPStatusUpdate
 from ..models.user_model import UserInDB
 from ..core.security import get_current_user
@@ -66,7 +66,32 @@ async def list_rfps(current_user: UserInDB = Depends(get_current_user)):
 
     return rfp_list
 
+@router.get("/{rfp_id}", response_model=RFPPublic)
+async def get_rfp_by_id(rfp_id: str, current_user: UserInDB = Depends(get_current_user)):
+    """
+    Retrieves a single RFP by its ID with authorization checks.
+    """
+    try:
+        obj_id = ObjectId(rfp_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid RFP ID format")
 
+    rfp = rfp_collection.find_one({"_id": obj_id})
+    if rfp is None:
+        raise HTTPException(status_code=404, detail="RFP not found")
+
+    # Authorization check
+    if current_user.role == 'Buyer' and str(rfp["buyer_id"]) != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this RFP")
+    
+    if current_user.role == 'Supplier' and rfp["status"] != "Published":
+         raise HTTPException(status_code=403, detail="This RFP is not published")
+
+    rfp["id"] = str(rfp["_id"])
+    rfp["buyer_id"] = str(rfp["buyer_id"])
+    
+    return RFPPublic(**rfp)
+    
 @router.post("/", response_model=RFPPublic, status_code=status.HTTP_201_CREATED)
 async def create_rfp(
         title: str = Form(...),
@@ -195,3 +220,28 @@ async def update_rfp_status(
     updated_rfp["buyer_id"] = str(updated_rfp["buyer_id"])
 
     return RFPPublic(**updated_rfp)
+
+@router.delete("/{rfp_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_rfp(rfp_id: str, current_user: UserInDB = Depends(get_current_user)):
+    """
+    Deletes an RFP. Only the owner can delete, and only if it's a draft.
+    """
+    try:
+        obj_id = ObjectId(rfp_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid RFP ID format")
+
+    rfp = rfp_collection.find_one({"_id": obj_id})
+    if rfp is None:
+        raise HTTPException(status_code=404, detail="RFP not found")
+
+    # Check ownership
+    if str(rfp["buyer_id"]) != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this RFP")
+
+    # Check if the RFP is a draft
+    if rfp["status"] != "Draft":
+        raise HTTPException(status_code=400, detail="Cannot delete an RFP that is not a draft")
+
+    rfp_collection.delete_one({"_id": obj_id})
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
