@@ -2,16 +2,43 @@
 # ------------------------------
 # This file contains the API endpoints for managing RFPs.
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from ..models.rfp_model import RFPCreate, RFPPublic, RFPStatusUpdate
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from ..models.rfp_model import RFPPublic, RFPStatusUpdate
 from ..models.user_model import UserInDB
 from ..core.security import get_current_user
 from ..db.database import rfp_collection
 from bson import ObjectId
 from datetime import datetime, timezone
 from typing import List
+import shutil
+from pathlib import Path
 
 router = APIRouter()
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+@router.get("/search", response_model=List[RFPPublic])
+async def search_rfps(q: str):
+    """
+    Performs a full-text search on the 'title' and 'description' of published RFPs.
+    """
+    query = {
+        "$text": {"$search": q},
+        "status": "Published"
+    }
+
+    # Sort by relevance score
+    rfps_cursor = rfp_collection.find(query, {"score": {"$meta": "textScore"}}).sort(
+        [("score", {"$meta": "textScore"})])
+
+    rfp_list = []
+    for rfp in rfps_cursor:
+        rfp["id"] = str(rfp["_id"])
+        rfp["buyer_id"] = str(rfp["buyer_id"])
+        rfp_list.append(RFPPublic(**rfp))
+
+    return rfp_list
 
 
 @router.get("/", response_model=List[RFPPublic])
@@ -21,8 +48,6 @@ async def list_rfps(current_user: UserInDB = Depends(get_current_user)):
     - Suppliers see all 'Published' RFPs.
     - Buyers see all RFPs they have created.
     """
-    # BUG FIX: Explicitly define the query for each role
-    # to prevent accidentally returning all documents.
     if current_user.role == "Supplier":
         query = {"status": "Published"}
     elif current_user.role == "Buyer":
@@ -43,23 +68,32 @@ async def list_rfps(current_user: UserInDB = Depends(get_current_user)):
 
 
 @router.post("/", response_model=RFPPublic, status_code=status.HTTP_201_CREATED)
-async def create_rfp(rfp: RFPCreate, current_user: UserInDB = Depends(get_current_user)):
-    """
-    Creates a new RFP. Only accessible by users with the 'Buyer' role.
-    """
-    # Role-based access control
+async def create_rfp(
+        title: str = Form(...),
+        description: str = Form(...),
+        file: UploadFile = File(...),
+        current_user: UserInDB = Depends(get_current_user)
+):
     if current_user.role != "Buyer":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only Buyers can create RFPs."
         )
 
-    # Create the RFP document
-    rfp_data = rfp.dict()
-    rfp_data["buyer_id"] = ObjectId(current_user.id)
-    rfp_data["status"] = "Draft"
-    rfp_data["created_at"] = datetime.now(timezone.utc)
-    rfp_data["updated_at"] = datetime.now(timezone.utc)
+    uploads_dir = BASE_DIR / "uploads"
+    file_path = uploads_dir / file.filename
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    rfp_data = {
+        "title": title,
+        "description": description,
+        "buyer_id": ObjectId(current_user.id),
+        "status": "Draft",
+        "document_url": f"uploads/{file.filename}",
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
+    }
 
     result = rfp_collection.insert_one(rfp_data)
 

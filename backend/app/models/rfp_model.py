@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Literal
+from typing import Literal, List
 
 class RFPBase(BaseModel):
     title: str = Field(..., min_length=5, max_length=100)
@@ -15,10 +15,11 @@ class RFPCreate(RFPBase):
 
 class RFPPublic(RFPBase):
     id: str
-    status: Literal["Draft", "Published", "Under Review", "Approved", "Rejected"]
+    status: Literal["Draft", "Published", "Under Review", "Approved", "Rejected", "Response Submitted"]
     buyer_id: str
+    document_url: str | None = None # Add document_url field
     created_at: datetime
     updated_at: datetime
 
 class RFPStatusUpdate(BaseModel):
-    status: Literal["Draft", "Published", "Under Review", "Approved", "Rejected"]
+    status: Literal["Draft", "Published", "Under Review", "Approved", "Rejected", "Response Submitted"]
