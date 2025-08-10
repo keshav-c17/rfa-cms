@@ -48,3 +48,7 @@ export const submitResponse = (rfpId: string, responseText: string, file: File) 
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
+
+export const getMySubmissions = () => {
+  return api.get('/rfps/submissions/my'); // Changed from /rfps/my-submissions
+};

@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 class ResponseBase(BaseModel):
     response_text: str = Field(..., max_length=5000)
@@ -19,6 +19,7 @@ class ResponsePublic(ResponseBase):
     document_url: str
     status: Literal["Submitted", "Approved", "Rejected"]
     submitted_at: datetime
+    rfp_title: Optional[str] = None # Add optional title field
 
 class ResponseStatusUpdate(BaseModel):
     status: Literal["Approved", "Rejected"]

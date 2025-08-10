@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from ..models.rfp_model import RFPPublic, RFPStatusUpdate
 from ..models.user_model import UserInDB
 from ..core.security import get_current_user
-from ..db.database import rfp_collection
+from ..db.database import rfp_collection, response_collection
 from bson import ObjectId
 from datetime import datetime, timezone
 from typing import List
@@ -69,7 +69,7 @@ async def list_rfps(current_user: UserInDB = Depends(get_current_user)):
 @router.get("/{rfp_id}", response_model=RFPPublic)
 async def get_rfp_by_id(rfp_id: str, current_user: UserInDB = Depends(get_current_user)):
     """
-    Retrieves a single RFP by its ID with authorization checks.
+    Retrieves a single RFP by its ID with corrected authorization checks.
     """
     try:
         obj_id = ObjectId(rfp_id)
@@ -81,11 +81,17 @@ async def get_rfp_by_id(rfp_id: str, current_user: UserInDB = Depends(get_curren
         raise HTTPException(status_code=404, detail="RFP not found")
 
     # Authorization check
-    if current_user.role == 'Buyer' and str(rfp["buyer_id"]) != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to view this RFP")
-    
-    if current_user.role == 'Supplier' and rfp["status"] != "Published":
-         raise HTTPException(status_code=403, detail="This RFP is not published")
+    if current_user.role == 'Buyer':
+        if str(rfp["buyer_id"]) != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to view this RFP")
+    elif current_user.role == 'Supplier':
+        # A supplier can view an RFP if it's published OR if they have already submitted a response to it.
+        has_submitted = response_collection.find_one({
+            "rfp_id": obj_id,
+            "supplier_id": ObjectId(current_user.id)
+        })
+        if rfp["status"] != "Published" and not has_submitted:
+             raise HTTPException(status_code=403, detail="This RFP is not available for viewing")
 
     rfp["id"] = str(rfp["_id"])
     rfp["buyer_id"] = str(rfp["buyer_id"])

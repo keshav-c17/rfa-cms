@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from .apis import auth, rfps, responses
 from .db.database import client
 import os
@@ -13,6 +14,8 @@ app = FastAPI(
     description="API for managing RFPs, responses, and users.",
     version="1.0.0"
 )
+
+app.mount("/uploads", StaticFiles(directory=BASE_DIR / "uploads"), name="uploads")
 
 # --- CORS Middleware Configuration ---
 # This is the crucial part that fixes the error. It tells the backend
