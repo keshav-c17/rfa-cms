@@ -6,10 +6,10 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// A simple component to protect routes
-const PrivateRoute = ({ children }: { children: React.JSX.Element }) => {
+const PrivateRoute = ({ children }: { children: React.ReactElement }) => {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" />;
 };
@@ -22,14 +22,13 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            {/* Add a placeholder for the dashboard later */}
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <PrivateRoute>
-                  <div><h1>Dashboard (Protected)</h1></div>
+                  <DashboardPage />
                 </PrivateRoute>
-              } 
+              }
             />
             <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
