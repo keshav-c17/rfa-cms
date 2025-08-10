@@ -1,8 +1,9 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from .apis import auth, rfps, responses
 from .db.database import client
 import os
-from pathlib import Path # Import Path
+from pathlib import Path
 
 # Define the base directory of the backend project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,7 +14,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Include routers
+# --- CORS Middleware Configuration ---
+# This is the crucial part that fixes the error. It tells the backend
+# to accept requests from your React application.
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"], # Allows all headers
+)
+
+# --- Routers ---
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(rfps.router, prefix="/api/rfps", tags=["RFPs"])
 app.include_router(responses.router, prefix="/api/rfps", tags=["Responses"])
