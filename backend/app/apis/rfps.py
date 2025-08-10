@@ -107,6 +107,55 @@ async def create_rfp(
     return RFPPublic(**created_rfp)
 
 
+@router.put("/{rfp_id}", response_model=RFPPublic)
+async def update_rfp(
+        rfp_id: str,
+        title: str = Form(...),
+        description: str = Form(...),
+        file: UploadFile = File(...),
+        current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Updates an existing RFP's details and document.
+    Serves as a basic version control mechanism.
+    """
+    try:
+        obj_id = ObjectId(rfp_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid RFP ID format")
+
+    # Verify ownership
+    rfp = rfp_collection.find_one({"_id": obj_id})
+    if rfp is None:
+        raise HTTPException(status_code=404, detail="RFP not found")
+    if str(rfp["buyer_id"]) != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this RFP")
+
+    # Save the new file version
+    uploads_dir = BASE_DIR / "uploads"
+    file_path = uploads_dir / file.filename
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Update the RFP document in the database
+    update_data = {
+        "$set": {
+            "title": title,
+            "description": description,
+            "document_url": f"uploads/{file.filename}",
+            "updated_at": datetime.now(timezone.utc)
+        }
+    }
+    rfp_collection.update_one({"_id": obj_id}, update_data)
+
+    # Fetch and return the updated document
+    updated_rfp = rfp_collection.find_one({"_id": obj_id})
+    updated_rfp["id"] = str(updated_rfp["_id"])
+    updated_rfp["buyer_id"] = str(updated_rfp["buyer_id"])
+
+    return RFPPublic(**updated_rfp)
+
+
 @router.patch("/{rfp_id}/status", response_model=RFPPublic)
 async def update_rfp_status(
     rfp_id: str,
