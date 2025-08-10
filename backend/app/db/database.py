@@ -19,3 +19,4 @@ database = client.rfp_system # The database name
 # Get collections
 user_collection = database.get_collection("users")
 rfp_collection = database.get_collection("rfps")
+response_collection = database.get_collection("responses")

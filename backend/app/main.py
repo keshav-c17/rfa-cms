@@ -1,6 +1,11 @@
 from fastapi import FastAPI
-from .apis import auth, rfps
+from .apis import auth, rfps, responses
 from .db.database import client
+import os
+from pathlib import Path # Import Path
+
+# Define the base directory of the backend project
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = FastAPI(
     title="RFP Contract Management System API",
@@ -8,16 +13,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Include the authentication router
+# Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(rfps.router, prefix="/api/rfps", tags=["RFPs"])
+app.include_router(responses.router, prefix="/api/rfps", tags=["Responses"])
 
 @app.on_event("startup")
 def startup_db_client():
-    """Connect to the database on startup."""
+    """Connect to the database and create uploads directory on startup."""
     try:
         client.admin.command('ping')
         print("Successfully connected to MongoDB.")
+        # Create uploads directory using an absolute path
+        uploads_dir = BASE_DIR / "uploads"
+        if not uploads_dir.exists():
+            uploads_dir.mkdir()
+            print(f"Created '{uploads_dir}' directory.")
     except Exception as e:
         print(f"Error connecting to MongoDB: {e}")
 
