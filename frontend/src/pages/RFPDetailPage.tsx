@@ -72,7 +72,7 @@ const RFPDetailPage: React.FC = () => {
     }
   };
 
-  // NEW: Handler for the "Begin Review" button
+  // Handler for the "Begin Review" button
   const handleBeginReview = async () => {
     if (!rfpId) return;
     try {
@@ -150,12 +150,14 @@ const RFPDetailPage: React.FC = () => {
                         View Response Document
                       </a>
                       <div className="flex items-center space-x-2">
-                          {response.status === 'Submitted' ? (
+                          {/* Only show Approve/Reject buttons when the RFP is 'Under Review' */}
+                          {rfp.status === 'Under Review' && response.status === 'Submitted' && (
                               <>
                                   <button onClick={() => handleResponseStatusUpdate(response.id, 'Approved')} className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Approve</button>
                                   <button onClick={() => handleResponseStatusUpdate(response.id, 'Rejected')} className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Reject</button>
                               </>
-                          ) : (
+                          )}
+                          {response.status !== 'Submitted' && (
                               <span className={`text-sm font-semibold ${response.status === 'Approved' ? 'text-green-700' : 'text-red-700'}`}>{response.status}</span>
                           )}
                       </div>
@@ -168,7 +170,7 @@ const RFPDetailPage: React.FC = () => {
             )}
           </div>
         )}
-        {/* Conditionally render the success message OR the form for Suppliers */}
+
         {user?.role === 'Supplier' && rfp.status === 'Published' && (
           <div className="mt-8">
             <h2 className="text-xl font-semibold text-gray-900">Submit Your Response</h2>
