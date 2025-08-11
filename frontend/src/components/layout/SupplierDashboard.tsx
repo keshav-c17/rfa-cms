@@ -3,10 +3,11 @@
 // This component displays the dashboard for a Supplier user.
 // It fetches all published RFPs from the backend API.
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getRFPs, getMySubmissions } from '../../services/rfpService';
 
+// Define the shape of the data we expect
 interface RFP {
   id: string;
   title: string;
@@ -19,7 +20,7 @@ interface Submission {
   id: string;
   rfp_id: string;
   status: string;
-  rfp_title: string; // Add the title property
+  rfp_title: string;
 }
 
 const SupplierDashboard: React.FC = () => {
@@ -48,6 +49,14 @@ const SupplierDashboard: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
+  // Memoize the filtered list of available RFPs to avoid re-calculating on every render.
+  const availableRfps = useMemo(() => {
+    // Create a set of RFP IDs that the supplier has already submitted a response to.
+    const submittedRfpIds = new Set(submissions.map(sub => sub.rfp_id));
+    // Filter the main RFP list to exclude any that are in the submitted set.
+    return rfps.filter(rfp => !submittedRfpIds.has(rfp.id));
+  }, [rfps, submissions]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Approved':
@@ -66,7 +75,7 @@ const SupplierDashboard: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-12">
-      {/* My Submissions Section */}
+      {/* My Submissions Section (no changes here) */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900">My Submissions</h2>
         <p className="mt-2 text-sm text-gray-700">The status of RFPs you have responded to.</p>
@@ -74,7 +83,6 @@ const SupplierDashboard: React.FC = () => {
           {submissions.length > 0 ? submissions.map((sub) => (
             <div key={sub.id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
               <p className="text-sm text-gray-500">Response to RFP</p>
-              {/* --- FIX IS HERE --- */}
               <h3 className="text-lg font-semibold text-gray-900 truncate" title={sub.rfp_title}>{sub.rfp_title}</h3>
               <div className="mt-4 flex justify-between items-center">
                 <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(sub.status)}`}>
@@ -93,12 +101,12 @@ const SupplierDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Available RFPs Section */}
+      {/* Available RFPs Section (now uses the filtered list) */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900">Available RFPs</h2>
         <p className="mt-2 text-sm text-gray-700">A list of all published RFPs open for responses.</p>
         <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {rfps.length > 0 ? rfps.map(rfp => (
+          {availableRfps.length > 0 ? availableRfps.map(rfp => (
             <div key={rfp.id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">{rfp.title}</h3>
               <p className="mt-2 text-sm text-gray-600 line-clamp-3">{rfp.description}</p>
@@ -111,7 +119,7 @@ const SupplierDashboard: React.FC = () => {
             </div>
           )) : (
             <div className="col-span-full text-center text-gray-500 bg-gray-50 py-8 rounded-lg">
-              No published RFPs are available at the moment.
+              No new RFPs are available for you to respond to.
             </div>
           )}
         </div>

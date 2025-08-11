@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from ..models.rfp_model import RFPPublic, RFPStatusUpdate
 from ..models.user_model import UserInDB
 from ..core.security import get_current_user
-from ..db.database import rfp_collection, response_collection
+from ..services.email_service import send_email_simulation
+from ..db.database import rfp_collection, response_collection, user_collection
 from bson import ObjectId
 from datetime import datetime, timezone
 from typing import List
@@ -211,6 +212,19 @@ async def update_rfp_status(
     if str(rfp["buyer_id"]) != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this RFP")
 
+    # --- EMAIL NOTIFICATION LOGIC ---
+    # If the status is changing to 'Published', notify all suppliers.
+    if status_update.status == "Published":
+        # Find all supplier emails
+        suppliers = user_collection.find({"role": "Supplier"}, {"email": 1})
+        supplier_emails = [supplier["email"] for supplier in suppliers]
+        
+        for email in supplier_emails:
+            send_email_simulation(
+                to_email=email,
+                subject=f"New RFP Published: {rfp['title']}",
+                body=f"A new RFP titled '{rfp['title']}' has been published. Please log in to view the details."
+            )
     # Update the status
     update_data = {
         "$set": {

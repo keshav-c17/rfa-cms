@@ -1,13 +1,14 @@
 // FILE: frontend/src/pages/RFPDetailPage.tsx
 // ------------------------------------------
-// NEW: This page displays the details of a single RFP and its responses.
+// This page displays the details of a single RFP and its responses.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getRFPById, getResponsesForRFP, updateResponseStatus, submitResponse } from '../services/rfpService';
+import { getRFPById, getResponsesForRFP, updateResponseStatus, submitResponse, updateRFPStatus } from '../services/rfpService';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../context/AuthContext';
 
+// Define types for our data structures
 interface RFP {
   id: string;
   title: string;
@@ -71,6 +72,17 @@ const RFPDetailPage: React.FC = () => {
     }
   };
 
+  // NEW: Handler for the "Begin Review" button
+  const handleBeginReview = async () => {
+    if (!rfpId) return;
+    try {
+      await updateRFPStatus(rfpId, 'Under Review');
+      fetchData();
+    } catch (err) {
+      alert('Failed to update status.');
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -104,8 +116,20 @@ const RFPDetailPage: React.FC = () => {
       <div className="p-4 sm:p-6 lg:p-8">
         <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:text-indigo-500 mb-4 inline-block">&larr; Back to Dashboard</Link>
         <div className="bg-white shadow overflow-hidden sm:rounded-lg p-6">
-          <h1 className="text-2xl font-bold text-gray-900">{rfp.title}</h1>
-          <p className="mt-1 text-sm text-gray-500">Status: <span className="font-medium text-gray-900">{rfp.status}</span></p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{rfp.title}</h1>
+              <p className="mt-1 text-sm text-gray-500">Status: <span className="font-medium text-gray-900">{rfp.status}</span></p>
+            </div>
+            {user?.role === 'Buyer' && rfp.status === 'Response Submitted' && (
+              <button
+                onClick={handleBeginReview}
+                className="ml-4 inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Begin Review
+              </button>
+            )}
+          </div>
           <p className="mt-4 text-base text-gray-600">{rfp.description}</p>
           <a href={`http://127.0.0.1:8000/${rfp.document_url}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 font-medium mt-4 inline-block">
             View RFP Document
@@ -144,42 +168,46 @@ const RFPDetailPage: React.FC = () => {
             )}
           </div>
         )}
-
+        {/* Conditionally render the success message OR the form for Suppliers */}
         {user?.role === 'Supplier' && rfp.status === 'Published' && (
           <div className="mt-8">
             <h2 className="text-xl font-semibold text-gray-900">Submit Your Response</h2>
-            <form onSubmit={handleResponseSubmit} className="mt-4 bg-white shadow p-6 rounded-lg space-y-4">
-              {submitError && <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">{submitError}</div>}
-              {submitSuccess && <div className="p-3 text-sm text-green-700 bg-green-100 rounded-lg">{submitSuccess}</div>}
-              <div>
-                <label htmlFor="responseText" className="block text-sm font-medium text-gray-700">Your Message</label>
-                <textarea
-                  id="responseText"
-                  rows={4}
-                  value={responseText}
-                  onChange={(e) => setResponseText(e.target.value)}
-                  className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
+            {submitSuccess ? (
+              <div className="mt-4 bg-white shadow p-6 rounded-lg">
+                <div className="p-3 text-sm text-green-700 bg-green-100 rounded-lg">{submitSuccess}</div>
               </div>
-              <div>
-                <label htmlFor="file" className="block text-sm font-medium text-gray-700">Your Proposal Document</label>
-                <input
-                  type="file"
-                  id="file"
-                  onChange={handleFileChange}
-                  className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!!submitSuccess} // Disable button after successful submission
-                className="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
-              >
-                Submit Response
-              </button>
-            </form>
+            ) : (
+              <form onSubmit={handleResponseSubmit} className="mt-4 bg-white shadow p-6 rounded-lg space-y-4">
+                {submitError && <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">{submitError}</div>}
+                <div>
+                  <label htmlFor="responseText" className="block text-sm font-medium text-gray-700">Your Message</label>
+                  <textarea
+                    id="responseText"
+                    rows={4}
+                    value={responseText}
+                    onChange={(e) => setResponseText(e.target.value)}
+                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="file" className="block text-sm font-medium text-gray-700">Your Proposal Document</label>
+                  <input
+                    type="file"
+                    id="file"
+                    onChange={handleFileChange}
+                    className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Submit Response
+                </button>
+              </form>
+            )}
           </div>
         )}
       </div>

@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from ..models.response_model import ResponsePublic, ResponseStatusUpdate
 from ..models.user_model import UserInDB
 from ..core.security import get_current_user
-from ..db.database import rfp_collection, response_collection
+from ..services.email_service import send_email_simulation
+from ..db.database import rfp_collection, response_collection, user_collection
 from bson import ObjectId
 from datetime import datetime, timezone
 import shutil
@@ -130,6 +131,16 @@ async def submit_response(
         {"$set": {"status": "Response Submitted", "updated_at": datetime.now(timezone.utc)}}
     )
 
+# --- EMAIL NOTIFICATION LOGIC ---
+    # Notify the buyer that a new response has been submitted.
+    buyer = user_collection.find_one({"_id": rfp["buyer_id"]})
+    if buyer:
+        send_email_simulation(
+            to_email=buyer["email"],
+            subject=f"New Response for RFP: {rfp['title']}",
+            body=f"A new response has been submitted by {current_user.email} for your RFP titled '{rfp['title']}'. Please log in to review it."
+        )
+        
     # Fetch and return the created response
     created_response = response_collection.find_one({"_id": result.inserted_id})
     created_response["id"] = str(created_response["_id"])
