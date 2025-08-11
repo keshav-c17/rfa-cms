@@ -178,20 +178,35 @@ async def update_response_status(
     if rfp is None or str(rfp["buyer_id"]) != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to modify this RFP's responses")
 
-    # Update the specific response's status
+    # Update the status of the specific response (the one being approved/rejected)
     response_collection.update_one(
         {"_id": response_obj_id, "rfp_id": rfp_obj_id},
         {"$set": {"status": status_update.status}}
     )
 
-    # If a response is approved OR rejected, update the main RFP's status
-    if status_update.status in ["Approved", "Rejected"]:
+    if status_update.status == "Approved":
+        # If one response is approved, update the main RFP's status to 'Approved'
         rfp_collection.update_one(
             {"_id": rfp_obj_id},
-            {"$set": {"status": status_update.status, "updated_at": datetime.now(timezone.utc)}}
+            {"$set": {"status": "Approved", "updated_at": datetime.now(timezone.utc)}}
+        )
+        
+        # AND auto-reject all other 'Submitted' responses for this RFP
+        response_collection.update_many(
+            {
+                "rfp_id": rfp_obj_id,
+                "_id": {"$ne": response_obj_id}, # Exclude the one we just approved
+                "status": "Submitted"
+            },
+            {"$set": {"status": "Rejected"}}
+        )
+    elif status_update.status == "Rejected":
+        # If a response is rejected, we just update the main RFP's timestamp
+        rfp_collection.update_one(
+            {"_id": rfp_obj_id},
+            {"$set": {"updated_at": datetime.now(timezone.utc)}}
         )
 
-    # Fetch and return the updated response
     updated_response = response_collection.find_one({"_id": response_obj_id})
     if updated_response is None:
         raise HTTPException(status_code=404, detail="Response not found")
