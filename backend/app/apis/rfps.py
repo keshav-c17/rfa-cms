@@ -46,11 +46,12 @@ async def search_rfps(q: str):
 async def list_rfps(current_user: UserInDB = Depends(get_current_user)):
     """
     Lists RFPs based on user role.
-    - Suppliers see all 'Published' RFPs.
+    - Suppliers see RFPs that are 'Published' or have responses.
     - Buyers see all RFPs they have created.
     """
     if current_user.role == "Supplier":
-        query = {"status": "Published"}
+        # A supplier should see all RFPs that are open for submission.
+        query = {"status": {"$in": ["Published", "Response Submitted"]}}
     elif current_user.role == "Buyer":
         query = {"buyer_id": ObjectId(current_user.id)}
     else:
@@ -58,13 +59,13 @@ async def list_rfps(current_user: UserInDB = Depends(get_current_user)):
         return []
 
     rfps_cursor = rfp_collection.find(query)
-
+    
     rfp_list = []
     for rfp in rfps_cursor:
         rfp["id"] = str(rfp["_id"])
         rfp["buyer_id"] = str(rfp["buyer_id"])
         rfp_list.append(RFPPublic(**rfp))
-
+        
     return rfp_list
 
 @router.get("/{rfp_id}", response_model=RFPPublic)
