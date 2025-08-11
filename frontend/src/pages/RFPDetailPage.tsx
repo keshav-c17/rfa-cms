@@ -170,8 +170,8 @@ const RFPDetailPage: React.FC = () => {
             )}
           </div>
         )}
-
-        {user?.role === 'Supplier' && rfp.status === 'Published' && (
+        {/* The form is now visible if the status is 'Published' OR 'Response Submitted' */}
+        {user?.role === 'Supplier' && ['Published', 'Response Submitted'].includes(rfp.status) && (
           <div className="mt-8">
             <h2 className="text-xl font-semibold text-gray-900">Submit Your Response</h2>
             {submitSuccess ? (
