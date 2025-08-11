@@ -23,18 +23,18 @@ app = FastAPI(
 app.mount("/uploads", StaticFiles(directory=BASE_DIR / "uploads"), name="uploads")
 
 # --- CORS Middleware Configuration ---
-# This is the crucial part that fixes the error. It tells the backend
-# to accept requests from your React application.
-origins = [
-    "http://localhost:3000",
-]
+# Read allowed origins from an environment variable.
+# The variable should be a comma-separated string of URLs.
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+
+origins = [origin.strip() for origin in CORS_ORIGINS.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"], # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"], # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- Routers ---
