@@ -9,6 +9,11 @@ from pathlib import Path
 # Define the base directory of the backend project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Create the uploads directory immediately when the script is loaded.
+# This ensures it exists before FastAPI tries to mount it.
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True) # exist_ok=True prevents an error if it already exists
+
 app = FastAPI(
     title="RFP Contract Management System API",
     description="API for managing RFPs, responses, and users.",
