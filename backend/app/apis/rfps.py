@@ -87,12 +87,9 @@ async def get_rfp_by_id(rfp_id: str, current_user: UserInDB = Depends(get_curren
         if str(rfp["buyer_id"]) != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to view this RFP")
     elif current_user.role == 'Supplier':
-        # A supplier can view an RFP if it's published OR if they have already submitted a response to it.
-        has_submitted = response_collection.find_one({
-            "rfp_id": obj_id,
-            "supplier_id": ObjectId(current_user.id)
-        })
-        if rfp["status"] != "Published" and not has_submitted:
+        has_submitted = response_collection.find_one({"rfp_id": obj_id, "supplier_id": ObjectId(current_user.id)})
+        # A supplier can view if it's open for bidding OR if they have already submitted.
+        if rfp["status"] not in ["Published", "Response Submitted"] and not has_submitted:
              raise HTTPException(status_code=403, detail="This RFP is not available for viewing")
 
     rfp["id"] = str(rfp["_id"])
