@@ -13,11 +13,16 @@ from datetime import datetime, timezone
 from typing import List
 import shutil
 from pathlib import Path
+import re
 
 router = APIRouter()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
+def sanitize_filename(filename: str) -> str:
+    """Removes special characters and replaces spaces with underscores."""
+    return re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
 
 @router.get("/search", response_model=List[RFPPublic])
 async def search_rfps(q: str):
@@ -110,8 +115,9 @@ async def create_rfp(
             detail="Only Buyers can create RFPs."
         )
 
+    sanitized_name = sanitize_filename(file.filename)
     uploads_dir = BASE_DIR / "uploads"
-    file_path = uploads_dir / file.filename
+    file_path = uploads_dir / sanitized_name
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 

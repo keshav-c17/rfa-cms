@@ -8,6 +8,9 @@ import { getRFPById, getResponsesForRFP, updateResponseStatus, submitResponse, u
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../context/AuthContext';
 
+// Get the base API URL from environment variables for constructing document links
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000';
+
 // Define types for our data structures
 interface RFP {
   id: string;
@@ -131,7 +134,7 @@ const RFPDetailPage: React.FC = () => {
             )}
           </div>
           <p className="mt-4 text-base text-gray-600">{rfp.description}</p>
-          <a href={`http://127.0.0.1:8000/${rfp.document_url}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 font-medium mt-4 inline-block">
+          <a href={`${API_BASE_URL.replace('/api', '')}/${rfp.document_url}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 font-medium mt-4 inline-block">
             View RFP Document
           </a>
         </div>
@@ -146,7 +149,7 @@ const RFPDetailPage: React.FC = () => {
                   <li key={response.id} className="bg-white shadow overflow-hidden sm:rounded-lg p-4">
                     <p className="text-sm text-gray-600">{response.response_text}</p>
                     <div className="mt-4 flex items-center justify-between">
-                      <a href={`http://127.0.0.1:8000/${response.document_url}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                      <a href={`${API_BASE_URL.replace('/api', '')}/${response.document_url}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
                         View Response Document
                       </a>
                       <div className="flex items-center space-x-2">

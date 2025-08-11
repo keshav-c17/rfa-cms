@@ -13,11 +13,16 @@ from datetime import datetime, timezone
 import shutil
 from pathlib import Path
 from typing import List
+import re
 
 router = APIRouter()
 
 # Define the base directory of the backend project to resolve file paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+def sanitize_filename(filename: str) -> str:
+    """Removes special characters and replaces spaces with underscores."""
+    return re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
 
 @router.get("/submissions/my", response_model=List[ResponsePublic])
 async def get_my_submissions(current_user: UserInDB = Depends(get_current_user)):
@@ -109,8 +114,9 @@ async def submit_response(
         raise HTTPException(status_code=404, detail="RFP is not open for responses.")
 
     # Save the uploaded file locally using an absolute path
+    sanitized_name = sanitize_filename(file.filename)
     uploads_dir = BASE_DIR / "uploads"
-    file_path = uploads_dir / file.filename
+    file_path = uploads_dir / sanitized_name
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
