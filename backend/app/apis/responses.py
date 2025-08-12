@@ -13,16 +13,12 @@ from datetime import datetime, timezone
 import shutil
 from pathlib import Path
 from typing import List
-import re
+from ..services.cloudinary_service import upload_file
 
 router = APIRouter()
 
 # Define the base directory of the backend project to resolve file paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
-def sanitize_filename(filename: str) -> str:
-    """Removes special characters and replaces spaces with underscores."""
-    return re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
 
 @router.get("/submissions/my", response_model=List[ResponsePublic])
 async def get_my_submissions(current_user: UserInDB = Depends(get_current_user)):
@@ -113,19 +109,17 @@ async def submit_response(
     if rfp is None or rfp.get("status") not in ["Published", "Response Submitted"]:
         raise HTTPException(status_code=404, detail="RFP is not open for responses.")
 
-    # Save the uploaded file locally using an absolute path
-    sanitized_name = sanitize_filename(file.filename)
-    uploads_dir = BASE_DIR / "uploads"
-    file_path = uploads_dir / sanitized_name
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Save the uploaded file to cloudinary
+    file_url = upload_file(file.file, folder="rfp_responses", original_filename=file.filename)
+    if not file_url:
+        raise HTTPException(status_code=500, detail="Failed to upload file.")
 
     # Create the response document
     response_data = {
         "rfp_id": rfp_obj_id,
         "supplier_id": ObjectId(current_user.id),
         "response_text": response_text,
-        "document_url": f"uploads/{file.filename}",
+        "document_url": file_url,
         "status": "Submitted",  # Initial status for a new response
         "submitted_at": datetime.now(timezone.utc)
     }

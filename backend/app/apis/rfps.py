@@ -14,6 +14,7 @@ from typing import List
 import shutil
 from pathlib import Path
 import re
+from ..services.cloudinary_service import upload_file
 
 router = APIRouter()
 
@@ -115,18 +116,17 @@ async def create_rfp(
             detail="Only Buyers can create RFPs."
         )
 
-    sanitized_name = sanitize_filename(file.filename)
-    uploads_dir = BASE_DIR / "uploads"
-    file_path = uploads_dir / sanitized_name
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Upload the file to Cloudinary instead of saving locally
+    file_url = upload_file(file.file, folder="rfp_documents", original_filename=file.filename)
+    if not file_url:
+        raise HTTPException(status_code=500, detail="Failed to upload file.")
 
     rfp_data = {
         "title": title,
         "description": description,
         "buyer_id": ObjectId(current_user.id),
         "status": "Draft",
-        "document_url": f"uploads/{file.filename}",
+        "document_url": file_url,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc)
     }

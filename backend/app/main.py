@@ -28,6 +28,7 @@ app.mount("/uploads", StaticFiles(directory=BASE_DIR / "uploads"), name="uploads
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000")
 
 origins = [origin.strip() for origin in CORS_ORIGINS.split(",")]
+origins.append("http://192.168.1.9:3000") # local network pc
 
 app.add_middleware(
     CORSMiddleware,
