@@ -5,9 +5,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getRFPs, getMySubmissions } from '../../services/rfpService';
+import { getRFPs, getMySubmissions, searchRFPs } from '../../services/rfpService';
 
-// Define the shape of the data we expect
+// Interfaces remain the same
 interface RFP {
   id: string;
   title: string;
@@ -28,8 +28,11 @@ const SupplierDashboard: React.FC = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
       const [rfpResponse, submissionResponse] = await Promise.all([
@@ -46,27 +49,39 @@ const SupplierDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchInitialData();
+  }, [fetchInitialData]);
 
-  // Memoize the filtered list of available RFPs to avoid re-calculating on every render.
   const availableRfps = useMemo(() => {
-    // Create a set of RFP IDs that the supplier has already submitted a response to.
     const submittedRfpIds = new Set(submissions.map(sub => sub.rfp_id));
-    // Filter the main RFP list to exclude any that are in the submitted set.
     return rfps.filter(rfp => !submittedRfpIds.has(rfp.id));
   }, [rfps, submissions]);
 
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) {
+      fetchInitialData();
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      setError(null);
+      const response = await searchRFPs(searchQuery);
+      setRfps(response.data);
+    } catch (err) {
+      setError('Failed to perform search.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Approved':
-        return 'bg-green-100 text-green-800';
-      case 'Rejected':
-        return 'bg-red-100 text-red-800';
-      case 'Submitted':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'Approved': return 'bg-green-100 text-green-800';
+      case 'Rejected': return 'bg-red-100 text-red-800';
+      case 'Submitted': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -75,7 +90,7 @@ const SupplierDashboard: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-12">
-      {/* My Submissions Section (no changes here) */}
+      {/* My Submissions Section */}
       <div>
         <h2 className="text-xl font-semibold text-gray-900">My Submissions</h2>
         <p className="mt-2 text-sm text-gray-700">The status of RFPs you have responded to.</p>
@@ -101,10 +116,30 @@ const SupplierDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Available RFPs Section (now uses the filtered list) */}
+      {/* Available RFPs Section with Search */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Available RFPs</h2>
-        <p className="mt-2 text-sm text-gray-700">A list of all published RFPs open for responses.</p>
+        <div className="sm:flex sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Available RFPs</h2>
+            <p className="mt-2 text-sm text-gray-700">A list of all published RFPs open for responses.</p>
+          </div>
+          <form onSubmit={handleSearch} className="mt-4 sm:mt-0 flex items-center">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by keyword..."
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            <button
+              type="submit"
+              disabled={isSearching}
+              className="ml-2 px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
+            >
+              {isSearching ? '...' : 'Search'}
+            </button>
+          </form>
+        </div>
         <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {availableRfps.length > 0 ? availableRfps.map(rfp => (
             <div key={rfp.id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
@@ -119,7 +154,7 @@ const SupplierDashboard: React.FC = () => {
             </div>
           )) : (
             <div className="col-span-full text-center text-gray-500 bg-gray-50 py-8 rounded-lg">
-              No new RFPs are available for you to respond to.
+              No published RFPs found.
             </div>
           )}
         </div>

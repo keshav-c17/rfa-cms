@@ -8,6 +8,14 @@ export const getRFPs = () => {
   return api.get('/rfps/');
 };
 
+export const getMySubmissions = () => {
+  return api.get('/rfps/submissions/my');
+};
+
+export const searchRFPs = (query: string) => {
+  return api.get('/rfps/search', { params: { q: query } });
+};
+
 export const getRFPById = (rfpId: string) => {
   return api.get(`/rfps/${rfpId}`);
 };
@@ -47,8 +55,4 @@ export const submitResponse = (rfpId: string, responseText: string, file: File) 
   return api.post(`/rfps/${rfpId}/responses`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-};
-
-export const getMySubmissions = () => {
-  return api.get('/rfps/submissions/my'); // Changed from /rfps/my-submissions
 };
