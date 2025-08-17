@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getRFPs, getMySubmissions, searchRFPs } from '../../services/rfpService';
+import { SupplierSkeleton } from '../common/SkeletonLoader'; // Import the skeleton loader
 
 // Interfaces remain the same
 interface RFP {
@@ -85,7 +86,8 @@ const SupplierDashboard: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center p-4">Loading dashboard...</div>;
+  // Use the skeleton loader while fetching data
+  if (loading) return <SupplierSkeleton />;
   if (error) return <div className="text-center p-4 text-red-500">{error}</div>;
 
   return (

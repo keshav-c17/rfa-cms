@@ -5,8 +5,9 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createRFP } from '../services/api'; // We'll create this function next
+import { createRFP } from '../services/rfpService'; // Corrected import path
 import { useAuth } from '../context/AuthContext';
+import { FormSpinner } from '../components/common/SkeletonLoader'; // Import the spinner
 
 const CreateRFPPage: React.FC = () => {
   const [title, setTitle] = useState<string>('');
@@ -57,62 +58,59 @@ const CreateRFPPage: React.FC = () => {
   return (
     <div className="p-6 max-w-2xl mx-auto mt-8 bg-white rounded-lg shadow-md">
       <h2 className="text-3xl font-bold text-gray-800 text-center mb-6">Create New RFP</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-            Title
-          </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            disabled={loading}
-          />
-        </div>
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Description
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            disabled={loading}
-          ></textarea>
-        </div>
-        <div>
-          <label htmlFor="file" className="block text-sm font-medium text-gray-700">
-            RFP Document
-          </label>
-          <input
-            id="file"
-            type="file"
-            onChange={handleFileChange}
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            disabled={loading}
-          />
-          {file && <p className="mt-2 text-sm text-gray-500">Selected file: {file.name}</p>}
-        </div>
-        {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-        {success && <div className="text-green-500 text-sm text-center">{success}</div>}
-        <div>
-          <button
-            type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            ) : (
-              'Create RFP'
-            )}
-          </button>
-        </div>
-      </form>
+      
+      {loading ? (
+        <FormSpinner text="Creating RFP..." />
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+              Title
+            </label>
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              Description
+            </label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            ></textarea>
+          </div>
+          <div>
+            <label htmlFor="file" className="block text-sm font-medium text-gray-700">
+              RFP Document
+            </label>
+            <input
+              id="file"
+              type="file"
+              onChange={handleFileChange}
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {file && <p className="mt-2 text-sm text-gray-500">Selected file: {file.name}</p>}
+          </div>
+          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+          {success && <div className="text-green-500 text-sm text-center">{success}</div>}
+          <div>
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              Create RFP
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

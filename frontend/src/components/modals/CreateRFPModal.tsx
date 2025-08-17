@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react';
 import { createRFP } from '../../services/rfpService';
+import { FormSpinner } from '../common/SkeletonLoader'; // Import the new spinner
 
 interface CreateRFPModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ const CreateRFPModal: React.FC<CreateRFPModalProps> = ({ isOpen, onClose, onRfpC
 
     try {
       await createRFP(title, description, file);
-      onRfpCreated();
+      onRfpCreated(); // This will trigger a re-fetch and close the modal
       // Reset form
       setTitle('');
       setDescription('');
@@ -53,58 +54,64 @@ const CreateRFPModal: React.FC<CreateRFPModalProps> = ({ isOpen, onClose, onRfpC
     <div className="fixed inset-0 z-10 overflow-y-auto bg-gray-500 bg-opacity-75 transition-opacity">
       <div className="flex items-center justify-center min-h-screen">
         <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-          <h3 className="text-lg font-medium leading-6 text-gray-900">Create New RFP</h3>
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            {error && <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                id="description"
-                rows={4}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="file" className="block text-sm font-medium text-gray-700">RFP Document</label>
-              <input
-                type="file"
-                id="file"
-                onChange={handleFileChange}
-                className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                required
-              />
-            </div>
-            <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm disabled:opacity-50"
-              >
-                {isSubmitting ? 'Creating...' : 'Create'}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-3 inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+          <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Create New RFP</h3>
+          
+          {/* --- Conditional Rendering Logic --- */}
+          {isSubmitting ? (
+            <FormSpinner text="Creating RFP..." />
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  id="description"
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="file" className="block text-sm font-medium text-gray-700">RFP Document</label>
+                <input
+                  type="file"
+                  id="file"
+                  onChange={handleFileChange}
+                  className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  required
+                />
+              </div>
+              <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm disabled:opacity-50"
+                >
+                  Create
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-3 inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

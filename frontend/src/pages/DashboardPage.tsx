@@ -8,19 +8,16 @@ import BuyerDashboard from '../components/layout/BuyerDashboard';
 import SupplierDashboard from '../components/layout/SupplierDashboard';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { FullScreenLoader } from '../components/common/SkeletonLoader'; // Import the new loader
 
 const DashboardPage: React.FC = () => {
   // Now `loading` exists in our AuthContextType
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  // If still loading, show a loading message
+  // If still loading auth status, show the full-screen loader
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-xl text-gray-700">Loading...</p>
-      </div>
-    );
+    return <FullScreenLoader />;
   }
 
   // If not authenticated, redirect to the login page

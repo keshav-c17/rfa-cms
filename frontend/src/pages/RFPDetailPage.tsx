@@ -7,6 +7,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getRFPById, getResponsesForRFP, updateResponseStatus, submitResponse, updateRFPStatus } from '../services/rfpService';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../context/AuthContext';
+import { RFPDetailSkeleton, FormSpinner } from '../components/common/SkeletonLoader'; // Import FormSpinner
 
 // Get the base API URL from environment variables for constructing document links
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -39,6 +40,7 @@ const RFPDetailPage: React.FC = () => {
   // State for the supplier's response form
   const [responseText, setResponseText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // NEW loading state
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
@@ -100,6 +102,7 @@ const RFPDetailPage: React.FC = () => {
     }
     setSubmitError(null);
     setSubmitSuccess(null);
+    setIsSubmitting(true); // Start loading
 
     try {
       await submitResponse(rfpId, responseText, file);
@@ -107,10 +110,13 @@ const RFPDetailPage: React.FC = () => {
       // Optionally, disable the form or redirect
     } catch (err: any) {
       setSubmitError(err.response?.data?.detail || 'Failed to submit response.');
+    } finally {
+      setIsSubmitting(false); // Stop loading
     }
   };
 
-  if (loading) return <Layout><div className="text-center p-4">Loading RFP details...</div></Layout>;
+  // Use the new skeleton loader while fetching data
+  if (loading) return <Layout><RFPDetailSkeleton /></Layout>;
   if (error) return <Layout><div className="text-center p-4 text-red-500">{error}</div></Layout>;
   if (!rfp) return <Layout><div className="text-center p-4">RFP not found.</div></Layout>;
 
@@ -139,7 +145,7 @@ const RFPDetailPage: React.FC = () => {
           </a>
         </div>
 
-        {/* Conditional Rendering based on Role */}
+        {/* Buyer's View: Submitted Responses */}
         {user?.role === 'Buyer' && (
           <div className="mt-8">
             <h2 className="text-xl font-semibold text-gray-900">Submitted Responses</h2>
@@ -153,7 +159,6 @@ const RFPDetailPage: React.FC = () => {
                         View Response Document
                       </a>
                       <div className="flex items-center space-x-2">
-                          {/* Only show Approve/Reject buttons when the RFP is 'Under Review' */}
                           {rfp.status === 'Under Review' && response.status === 'Submitted' && (
                               <>
                                   <button onClick={() => handleResponseStatusUpdate(response.id, 'Approved')} className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Approve</button>
@@ -173,7 +178,8 @@ const RFPDetailPage: React.FC = () => {
             )}
           </div>
         )}
-        {/* The form is now visible if the status is 'Published' OR 'Response Submitted' */}
+        
+        {/* Supplier's View: Response Form */}
         {user?.role === 'Supplier' && ['Published', 'Response Submitted'].includes(rfp.status) && (
           <div className="mt-8">
             <h2 className="text-xl font-semibold text-gray-900">Submit Your Response</h2>
@@ -182,36 +188,43 @@ const RFPDetailPage: React.FC = () => {
                 <div className="p-3 text-sm text-green-700 bg-green-100 rounded-lg">{submitSuccess}</div>
               </div>
             ) : (
-              <form onSubmit={handleResponseSubmit} className="mt-4 bg-white shadow p-6 rounded-lg space-y-4">
-                {submitError && <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">{submitError}</div>}
-                <div>
-                  <label htmlFor="responseText" className="block text-sm font-medium text-gray-700">Your Message</label>
-                  <textarea
-                    id="responseText"
-                    rows={4}
-                    value={responseText}
-                    onChange={(e) => setResponseText(e.target.value)}
-                    className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="file" className="block text-sm font-medium text-gray-700">Your Proposal Document</label>
-                  <input
-                    type="file"
-                    id="file"
-                    onChange={handleFileChange}
-                    className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Submit Response
-                </button>
-              </form>
+              <div className="mt-4 bg-white shadow p-6 rounded-lg">
+                {isSubmitting ? (
+                  <FormSpinner text="Submitting response..." />
+                ) : (
+                  <form onSubmit={handleResponseSubmit} className="space-y-4">
+                    {submitError && <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">{submitError}</div>}
+                    <div>
+                      <label htmlFor="responseText" className="block text-sm font-medium text-gray-700">Your Message</label>
+                      <textarea
+                        id="responseText"
+                        rows={4}
+                        value={responseText}
+                        onChange={(e) => setResponseText(e.target.value)}
+                        className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="file" className="block text-sm font-medium text-gray-700">Your Proposal Document</label>
+                      <input
+                        type="file"
+                        id="file"
+                        onChange={handleFileChange}
+                        className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                    >
+                      Submit Response
+                    </button>
+                  </form>
+                )}
+              </div>
             )}
           </div>
         )}

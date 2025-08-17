@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getRFPs, deleteRFP, updateRFPStatus } from '../../services/rfpService';
 import CreateRFPModal from '../modals/CreateRFPModal';
+import { BuyerSkeleton } from '../common/SkeletonLoader'; // Import the skeleton loader
 
 interface RFP {
   id: string;
@@ -39,6 +40,7 @@ const BuyerDashboard: React.FC = () => {
   };
 
   const handleDelete = async (rfpId: string) => {
+    // Note: Replacing window.confirm for better UX is a good next step
     if (window.confirm('Are you sure you want to delete this draft RFP?')) {
       try {
         await deleteRFP(rfpId);
@@ -78,7 +80,8 @@ const BuyerDashboard: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center p-4">Loading your RFPs...</div>;
+  // Use the skeleton loader while fetching data
+  if (loading) return <BuyerSkeleton />;
   if (error) return <div className="text-center p-4 text-red-500">{error}</div>;
 
   return (
