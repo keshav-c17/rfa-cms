@@ -5,11 +5,9 @@ This is a full-stack web application built for a coding assignment. It serves as
 
 ## Live Demo
 
--   **Frontend (Vercel):**  `https://rfa-cms.vercel.app/`
-    
--   **Backend API (Railway):**  `https://rfa-cms-production.up.railway.app/`
-    
--   **API Documentation (Swagger):**  `https://rfa-cms-production.up.railway.app/docs`
+- **Frontend (Vercel):** [https://rfa-cms.vercel.app/](https://rfa-cms.vercel.app/)
+- **Backend API (Railway):** [https://rfa-cms-production.up.railway.app/](https://rfa-cms-production.up.railway.app/)
+- **API Documentation (Swagger):** [https://rfa-cms-production.up.railway.app/docs](https://rfa-cms-production.up.railway.app/docs)
     
 ## Architecture Overview
 
@@ -167,7 +165,7 @@ This application was built to meet the core requirements of the assignment withi
 
 The API is self-documenting thanks to FastAPI and the OpenAPI standard. The interactive Swagger UI can be accessed at the `/docs` endpoint of the backend.
 
-**Live API Docs:**  `https://rfa-cms-production.up.railway.app/docs`
+**Live API Docs:** [https://rfa-cms-production.up.railway.app/docs](https://rfa-cms-production.up.railway.app/docs)
 
 ## Database Schema
 
