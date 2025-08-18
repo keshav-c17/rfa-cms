@@ -51,8 +51,6 @@ This application is built using a decoupled, full-stack architecture with a dist
     
 -   **Full-Text Search:** The supplier dashboard includes a search bar to perform a full-text search across the titles and descriptions of all published RFPs.
     
--   **Version Control:** Buyers can update the details and document of an existing RFP, providing a basic version control mechanism.
-    
 -   **Data Integrity:** The system correctly handles data relationships, ensuring buyers can only see their own RFPs and suppliers can only see public or relevant information.
 
 ## Limitations & Future Improvements
@@ -63,7 +61,11 @@ This application was built to meet the core requirements of the assignment withi
     
 -   **Simplified RFP Award Logic:** When a buyer approves one response, the system automatically rejects all other pending responses and closes the RFP. A more advanced system would allow for more granular control over the award process.
     
--   **Basic Real-time Updates:** The UI updates by re-fetching data after a user performs an action. True real-time updates (e.g., a buyer seeing a new response appear without refreshing) would require implementing WebSockets. 
+-   **Basic Real-time Updates:** The UI updates by re-fetching data after a user performs an action. True real-time updates (e.g., a buyer seeing a new response appear without refreshing) would require implementing WebSockets.
+
+-   **Version Control:** Buyers can update the details and document of an existing RFP, providing a basic version control mechanism.
+-   **Test Suite:** The application does not include a formal testing suite (e.g., unit tests, integration tests). Testing was performed manually during development to ensure core functionality.
+-   **Potential Bugs:** Given the rapid development cycle focused on core features, the application may contain bugs or unhandled edge cases.
 
 ## Technology Stack
 
