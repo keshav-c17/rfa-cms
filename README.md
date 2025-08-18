@@ -58,8 +58,6 @@ This application is built using a decoupled, full-stack architecture with a dist
 ## Limitations & Future Improvements
 
 This application was built to meet the core requirements of the assignment within a limited timeframe. As such, certain features were implemented in a simplified manner suitable for a demo.
-
--   **Ephemeral File Storage:** The application uses the local filesystem on the Railway server for document uploads. This is an **ephemeral** (temporary) storage. Any uploaded files will be **deleted** whenever the backend application restarts or redeploys. For a production environment, this would be replaced with a persistent storage solution like AWS S3 or Cloudinary.
     
 -   **Simulated Email Notifications:** As per the assignment guidelines, email notifications are simulated by logging the email content to the backend console. No actual emails are sent.
     
